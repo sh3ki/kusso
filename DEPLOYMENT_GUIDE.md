@@ -65,25 +65,21 @@ sudo usermod -aG sudo kusso
 su - kusso
 ```
 
-### Step 2.3: Configure Firewall
+### Step 2.3: Configure Firewall (Basic Setup)
 ```bash
 # Install UFW if not installed
 sudo apt install ufw -y
 
-# Allow SSH
+# Allow SSH (IMPORTANT: Do this first to avoid losing connection!)
 sudo ufw allow OpenSSH
-
-# Allow HTTP
-sudo ufw allow 'Apache'
-
-# Allow HTTPS
-sudo ufw allow 'Apache Secure'
 
 # Enable firewall
 sudo ufw enable
 
 # Check status
 sudo ufw status
+
+# Note: We'll add HTTP and HTTPS rules after installing Apache
 ```
 
 ---
@@ -101,6 +97,16 @@ sudo systemctl enable apache2
 
 # Check Apache status
 sudo systemctl status apache2
+
+# Now add firewall rules for Apache
+sudo ufw allow 'Apache Full'
+
+# Or if 'Apache Full' doesn't work, use port numbers:
+# sudo ufw allow 80/tcp
+# sudo ufw allow 443/tcp
+
+# Check firewall status
+sudo ufw status
 
 # Test: Open browser and visit http://YOUR_SERVER_IP
 # You should see Apache2 Ubuntu Default Page
@@ -242,15 +248,15 @@ git --version
 # Navigate to web root
 cd /var/www/html
 
-# Remove default Apache page
-sudo rm index.html
+# Remove default Apache page (if exists)
+sudo rm -f index.html
 
 # Clone your repository
 sudo git clone https://github.com/sh3ki/kusso.git
 
 # Move files from kusso folder to html root
 sudo mv kusso/* .
-sudo mv kusso/.gitignore .
+sudo mv kusso/.gitignore . 2>/dev/null || true
 
 # Remove empty kusso directory
 sudo rmdir kusso
@@ -270,8 +276,21 @@ scp -r c:\Users\USER\Documents\SYSTEMS\WEB\PHP\VANILLA\kusso\* username@YOUR_SER
 # Check files are in place
 ls -la /var/www/html/
 
-# You should see index.php, includes/, pos/, etc.
+# You should see index.php, includes/, pos/, kusso.sql, etc.
 ```
+
+### Step 5.4: Import Database Schema
+```bash
+# Import the kusso.sql file from the cloned repository
+mysql -u root -p kusso < /var/www/html/kusso.sql
+
+# Enter your MySQL root password when prompted
+
+# Verify tables were created
+mysql -u root -p kusso -e "SHOW TABLES;"
+```
+
+You should see tables like: `users`, `products`, `orders`, `categories`, `inventory`, etc.
 
 ---
 
@@ -433,10 +452,15 @@ sudo systemctl status certbot.timer
 # Navigate to includes directory
 cd /var/www/html/includes
 
-# Copy example config files
+# Check if example config files exist
+ls -la *.example.php
+
+# Copy example config files to actual config files
 sudo cp config.example.php config.php
 sudo cp paymongo_config.example.php paymongo_config.php
 ```
+
+**Note:** The repository excludes sensitive config files (`config.php` and `paymongo_config.php`) for security. The `.example.php` files serve as templates.
 
 ### Step 8.2: Configure Database Connection
 ```bash
@@ -485,20 +509,18 @@ define('PAYMONGO_API_URL', 'https://api.paymongo.com/v1');
 3. Navigate to Developers → API Keys
 4. Copy your test keys and paste them in the config
 
-### Step 8.4: Import Database Schema
+### Step 8.4: Verify Database & Users
 ```bash
-# Import the SQL file
-mysql -u root -p kusso < /var/www/html/kusso.sql
-
-# Enter your MySQL root password when prompted
-
-# Verify tables were created
+# Check that tables were imported correctly (should have been done in Step 5.4)
 mysql -u root -p kusso -e "SHOW TABLES;"
+
+# Check if admin user exists in the database
+mysql -u root -p kusso -e "SELECT username, role, email FROM users WHERE role='admin';"
 ```
 
-You should see tables like: users, products, orders, inventory, etc.
+**Note:** If the `kusso.sql` file already contains user data including an admin account, you'll see it listed here. If no admin user exists, proceed to create one manually in the next step.
 
-### Step 8.5: Create Admin User
+### Step 8.5: Create Admin User (if not already in database)
 ```bash
 # Login to MySQL
 mysql -u root -p kusso
