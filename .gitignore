@@ -1,0 +1,19 @@
+﻿# Ignore sensitive configuration files
+includes/config.php
+includes/paymongo_config.php
+
+# Ignore environment files
+.env
+
+# Ignore backups
+backups/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
